@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "node-network",
+    "secure-sign",    
+    "test-network",    
+    "test-ui",
+]

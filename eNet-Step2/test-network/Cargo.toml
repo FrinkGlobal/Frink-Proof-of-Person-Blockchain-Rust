@@ -1,0 +1,12 @@
+[package]
+name = "test-network"
+version = "0.1.0"
+authors = ["bluesky711711 <bluesky711711@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enet = "0.2.3"
+csv = "1.1"
+node-network = { path = "../node-network" }

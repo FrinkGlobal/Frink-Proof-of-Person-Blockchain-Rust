@@ -1,0 +1,15 @@
+[package]
+name = "secure-sign"
+version = "0.1.0"
+authors = ["bluesky711711 <bluesky711711@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2"
+rand = "0.4.0"
+
+[build-dependencies]
+bindgen = "0.35.0"
+cc = "1.0.50"
