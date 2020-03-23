@@ -2083,6 +2083,8 @@ falcon_sign_set_private_key(falcon_sign *fs,
 	int i;
 	int fb, has_G;
 
+	int res = 0;
+
 	/*
 	 * TODO: when reloading a new private key of the same size as
 	 * the currently allocated one, we could reuse the buffers
@@ -2117,11 +2119,13 @@ falcon_sign_set_private_key(falcon_sign *fs,
 	if (fs->ternary) {
 		fs->q = 18433;
 		if (fs->logn < 3 || fs->logn > 9) {
+			res = -2;
 			goto bad_skey;
 		}
 	} else {
 		fs->q = 12289;
 		if (fs->logn < 1 || fs->logn > 10) {
+			res = -3;
 			goto bad_skey;
 		}
 	}
@@ -2137,12 +2141,14 @@ falcon_sign_set_private_key(falcon_sign *fs,
 		elen = falcon_decode_small(ske[i], fs->logn,
 			comp, fs->q, skey_buf, len);
 		if (elen == 0) {
+			res = -4;
 			goto bad_skey;
 		}
 		skey_buf += elen;
 		len -= elen;
 	}
 	if (len != 0) {
+		res = -5;
 		goto bad_skey;
 	}
 
@@ -2153,6 +2159,7 @@ falcon_sign_set_private_key(falcon_sign *fs,
 		if (!falcon_complete_private(ske[3],
 			ske[0], ske[1], ske[2], fs->logn, fs->ternary))
 		{
+			res = -6;
 			goto bad_skey;
 		}
 	}
@@ -2171,10 +2178,12 @@ falcon_sign_set_private_key(falcon_sign *fs,
 	}
 	fs->sk = malloc(fs->sk_len);
 	if (fs->sk == NULL) {
+		res = -7;
 		goto bad_skey;
 	}
 	fs->tmp = malloc(fs->tmp_len);
 	if (fs->tmp == NULL) {
+		res = -8;
 		goto bad_skey;
 	}
 
@@ -2184,7 +2193,7 @@ falcon_sign_set_private_key(falcon_sign *fs,
 
 bad_skey:
 	clear_private(fs);
-	return 0;
+	return res;
 }
 
 /* see falcon.h */

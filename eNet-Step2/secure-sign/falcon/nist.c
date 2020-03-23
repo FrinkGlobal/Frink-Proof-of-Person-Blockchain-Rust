@@ -109,6 +109,77 @@ exit_crypto_sign:
 }
 
 int
+crypto_sign_public(unsigned char *sm, unsigned long long *smlen,
+	const unsigned char *m, unsigned long long mlen,
+	const unsigned char *pk)
+{
+	falcon_sign *fs;
+	unsigned char seed[48];
+	unsigned char nonce[PARAM_NONCE];
+	unsigned char sig[CRYPTO_BYTES - 2 - PARAM_NONCE];
+	size_t sig_len, off;
+	int r;
+
+	r = -1;
+	fs = falcon_sign_new();
+	if (fs == NULL) {
+		goto exit_crypto_sign_public;
+	}
+	randombytes(seed, sizeof seed);
+	falcon_sign_set_seed(fs, seed, sizeof seed, 1);
+	r = falcon_sign_set_private_key(fs, pk, CRYPTO_PUBLICKEYBYTES);
+	if (!(r > 0)) {
+		r = r - 100;
+		goto exit_crypto_sign_public;
+	}
+	if (!falcon_sign_start(fs, nonce)) {
+		r = -3;
+		goto exit_crypto_sign_public;
+	}
+	falcon_sign_update(fs, m, mlen);
+	sig_len = falcon_sign_generate(fs,
+		sig, sizeof sig, FALCON_COMP_STATIC);
+	if (sig_len == 0) {
+		r = -4;
+		goto exit_crypto_sign_public;
+	}
+
+	/*
+	 * Because the API insists on encoding the message and the
+	 * signature in a single blob, and does not offer much support
+	 * for variable-length signatures, we need to do a custom
+	 * encoding:
+	 *
+	 *   sig_len   signature length (in bytes): 2 bytes, big-endian
+	 *   nonce     40 bytes
+	 *   message   the message itself
+	 *   sig       signature
+	 *
+	 * For streamed processing, the nonce would have to be known before
+	 * processing the bulk of the message, but the signature length
+	 * would be known only at the end.
+	 *
+	 * FIXME: when signatures with recovery are implemented, modify
+	 * the format so as to leverage them (lower size overhead).
+	 */
+	off = 0;
+	sm[off ++] = (unsigned char)(sig_len >> 8);
+	sm[off ++] = (unsigned char)sig_len;
+	memcpy(sm + off, nonce, sizeof nonce);
+	off += sizeof nonce;
+	memcpy(sm + off, m, mlen);
+	off += mlen;
+	memcpy(sm + off, sig, sig_len);
+	off += sig_len;
+	*smlen = off;
+	r = 0;
+
+exit_crypto_sign_public:
+	falcon_sign_free(fs);
+	return r;
+}
+
+int
 crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	const unsigned char *sm, unsigned long long smlen,
 	const unsigned char *pk)
@@ -145,6 +216,47 @@ crypto_sign_open(unsigned char *m, unsigned long long *mlen,
 	}
 
 exit_crypto_sign_open:
+	falcon_vrfy_free(fv);
+	return r;
+}
+
+int
+crypto_sign_open_private(unsigned char *m, unsigned long long *mlen,
+	const unsigned char *sm, unsigned long long smlen,
+	const unsigned char *sk)
+{
+	falcon_vrfy *fv;
+	int r;
+	const unsigned char *sig, *msg;
+	size_t sig_len, msg_len;
+
+	r = -1;
+	fv = falcon_vrfy_new();
+	if (fv == NULL) {
+		goto exit_crypto_sign_open_private;
+	}
+	if (!falcon_vrfy_set_public_key(fv, sk, CRYPTO_SECRETKEYBYTES)) {
+		goto exit_crypto_sign_open_private;
+	}
+	if (smlen < (2 + PARAM_NONCE)) {
+		goto exit_crypto_sign_open_private;
+	}
+	sig_len = ((size_t)sm[0] << 8) + sm[1];
+	if (sig_len > (smlen - (2 + PARAM_NONCE))) {
+		goto exit_crypto_sign_open_private;
+	}
+	msg = sm + 2 + PARAM_NONCE;
+	msg_len = smlen - (2 + PARAM_NONCE) - sig_len;
+	sig = msg + msg_len;
+	falcon_vrfy_start(fv, sm + 2, PARAM_NONCE);
+	falcon_vrfy_update(fv, msg, msg_len);
+	if (falcon_vrfy_verify(fv, sig, sig_len) > 0) {
+		r = 0;
+		memcpy(m, msg, msg_len);
+		*mlen = msg_len;
+	}
+
+exit_crypto_sign_open_private:
 	falcon_vrfy_free(fv);
 	return r;
 }

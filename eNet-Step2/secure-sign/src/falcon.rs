@@ -79,12 +79,30 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
+    pub fn crypto_sign_public(
+        sm: *mut ::std::os::raw::c_uchar,
+        smlen: *mut ::std::os::raw::c_ulonglong,
+        m: *const ::std::os::raw::c_uchar,
+        mlen: ::std::os::raw::c_ulonglong,
+        pk: *const ::std::os::raw::c_uchar,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn crypto_sign_open(
         m: *mut ::std::os::raw::c_uchar,
         mlen: *mut ::std::os::raw::c_ulonglong,
         sm: *const ::std::os::raw::c_uchar,
         smlen: ::std::os::raw::c_ulonglong,
         pk: *const ::std::os::raw::c_uchar,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn crypto_sign_open_private(
+        m: *mut ::std::os::raw::c_uchar,
+        mlen: *mut ::std::os::raw::c_ulonglong,
+        sm: *const ::std::os::raw::c_uchar,
+        smlen: ::std::os::raw::c_ulonglong,
+        sk: *const ::std::os::raw::c_uchar,
     ) -> ::std::os::raw::c_int;
 }
 pub type wchar_t = ::std::os::raw::c_ushort;

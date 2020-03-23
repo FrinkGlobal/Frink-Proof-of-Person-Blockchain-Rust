@@ -10,5 +10,9 @@ edition = "2018"
 enet = "0.2.3"
 csv = "1.1"
 rust-ini = "0.15"
+hex = "0.4.2"
+libc = "0.2"
+chrono = "0.4"
 
 secure-sign = { path = "../secure-sign" }
+
